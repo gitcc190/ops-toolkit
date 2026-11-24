@@ -1,0 +1,46 @@
+# ============================================================
+# ops-toolkit.service —— systemd 服务单元示例
+# 配套 ops-toolkit.timer 使用（timer 负责定时，service 负责执行）
+# 安装：
+#   sudo cp conf/ops-toolkit.service conf/ops-toolkit.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ops-toolkit.timer
+# 查看状态与日志：
+#   systemctl list-timers ops-toolkit.timer
+#   journalctl -u ops-toolkit.service -n 50 --no-pager
+# ============================================================
+
+[Unit]
+Description=ops-toolkit 磁盘巡检
+Documentation=https://github.com/<your-name>/ops-toolkit
+After=network-online.target
+
+[Service]
+Type=oneshot
+# ⚠ 这里默认不写 User=/Group=，也就是用 root 跑。
+#   很多示例会写 User=ops，但那个用户通常不存在，装上去直接报
+#   "Failed to determine user credentials"，而且这个报错看不出是用户不存在。
+#   如果你确实想降权运行，先建用户再取消注释：
+#     useradd -r -s /usr/sbin/nologin ops
+#   User=ops
+#   Group=ops
+#
+# ⚠ 路径必须改成你自己的实际路径，否则 ExecStart 找不到文件，
+#   systemd 只会记一句 "No such file or directory"，不容易定位。
+WorkingDirectory=/root/work/ops-toolkit
+ExecStart=/root/work/ops-toolkit/scripts/disk_alert.sh -t 85
+
+# 超时保护：超过 60 秒强制结束，避免卡死占住 timer
+TimeoutStartSec=60
+
+# 日志直接进 journald，用 journalctl 查看，不用自己写文件
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ops-toolkit-disk
+
+# 退出码 3（超阈值）在 systemd 眼里算失败，这里显式声明为成功，
+# 否则每次告警都会在 systemctl status 里显示 failed
+SuccessExitStatus=3
+
+[Install]
+WantedBy=multi-user.target

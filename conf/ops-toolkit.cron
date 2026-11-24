@@ -1,0 +1,35 @@
+# ============================================================
+# ops-toolkit.cron —— crontab 示例
+#
+# 安装前先做两件事（不做会静默失败，任务什么也不干还不报错）：
+#   1. 建好日志目录，否则 >> 重定向直接失败：
+#        sudo mkdir -p /var/log/ops-toolkit
+#   2. 把下面的 /root/work/ops-toolkit 换成你的实际路径
+#
+# 安装方式：
+#   crontab -e
+#   把下面的内容粘进去
+# 查看是否生效：
+#   crontab -l
+# 看 cron 执行日志：
+#   grep CRON /var/log/syslog        Ubuntu
+#   grep CRON /var/log/cron          CentOS / RHEL
+# ============================================================
+
+# cron 环境的 PATH 只有 /usr/bin:/bin，比交互式 shell 短得多。
+# 脚本里若调用了 /usr/local/bin 下的命令，必须在这里补上，否则报 command not found。
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# 每 5 分钟检查一次磁盘，超过 85% 记录告警
+# 2>&1 把 stderr 也写进日志，否则标准错误会丢
+*/5 * * * * /root/work/ops-toolkit/scripts/disk_alert.sh -t 85 >> /var/log/ops-toolkit/disk_alert.log 2>&1
+
+# 每天凌晨 2 点备份 MySQL
+0 2 * * * /root/work/ops-toolkit/scripts/mysql_backup.sh -c /root/work/ops-toolkit/conf/backup.env >> /var/log/ops-toolkit/mysql_backup.log 2>&1
+
+# 每天早上 8 点统计前一天的 Nginx Top10 IP
+0 8 * * * /root/work/ops-toolkit/scripts/nginx_top_ip.sh -n 10 -f /var/log/nginx/access.log >> /var/log/ops-toolkit/nginx_top.log 2>&1
+
+# 自检：每分钟写一行时间戳，用来确认 cron 本身在跑。
+# 排查完记得删掉这条，否则会一直往 /tmp 写文件。
+# * * * * * date >> /tmp/cron_alive.log 2>&1

@@ -1,0 +1,24 @@
+# ============================================================
+# ops-toolkit.timer —— systemd 定时器示例
+# 与 crontab 的区别：
+#   - 机器关机期间错过的任务可以补跑（Persistent=true）
+#   - 日志统一进 journald，不用自己管日志文件轮转
+#   - 可以精确控制随机延迟，避免多台机器同时触发
+# ============================================================
+
+[Unit]
+Description=ops-toolkit 磁盘巡检定时器
+
+[Timer]
+# 开机 2 分钟后先跑一次
+OnBootSec=2min
+# 之后每 5 分钟一次
+OnUnitActiveSec=5min
+# 加 30 秒随机延迟，多机部署时避免同时打满
+RandomizedDelaySec=30
+# 关机期间错过的，开机后补跑一次
+Persistent=true
+Unit=ops-toolkit.service
+
+[Install]
+WantedBy=timers.target
