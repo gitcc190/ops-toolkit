@@ -1,0 +1,43 @@
+# 构建上下文排除清单
+#
+# 为什么必须有这个文件：
+#   Dockerfile 里是 COPY . /opt/ops-toolkit，如果不排除，
+#   .git（几十 MB 历史）、conf/backup.env（真实密码）、
+#   hosts.txt（内网 IP）全都会被打进镜像层。
+#   镜像层一旦上传到仓库就再也删不掉了，等于把密码公开。
+
+# ---- 版本控制 ----
+.git
+.gitignore
+
+# ---- 敏感文件：绝对不能进镜像 ----
+conf/backup.env
+hosts.txt
+*.pem
+*.key
+id_rsa
+.env
+*.env
+!*.env.example
+!*.env.example
+
+# ---- 运行时产物 ----
+**/__pycache__
+*.py[cod]
+*.log
+!samples/access.log
+backup/
+backups/
+proc_guard_*.json
+*.tmp
+
+# ---- 与运行时无关的文档 ----
+docs/
+LICENSE
+
+# ---- 编辑器与系统 ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
