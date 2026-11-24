@@ -12,9 +12,19 @@
 #   ./nginx_top_ip.sh -n 20 -f access.log
 # ============================================================
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 用纯 bash 内建算脚本目录（cd / pwd 都是 builtin），不依赖外部 dirname。
+# 场景：cron 或 env -i 下 PATH 异常时 dirname 找不到，SCRIPT_DIR 会变成空串，
+# 后面 source common.sh 就会失败，而 set -euo pipefail 恰恰是 common.sh 提供的。
+SCRIPT_DIR="${BASH_SOURCE[0]%/*}"
+[ "$SCRIPT_DIR" = "${BASH_SOURCE[0]}" ] && SCRIPT_DIR="."
+SCRIPT_DIR="$(cd "$SCRIPT_DIR" && pwd)"
 # shellcheck source=lib/common.sh
-source "$SCRIPT_DIR/lib/common.sh"
+# 加载失败必须立刻退出，否则脚本会在没有 set -euo pipefail 保护的情况下继续跑，
+# 最后返回 0 —— 看起来成功，实际什么都没有做。
+if ! . "$SCRIPT_DIR/lib/common.sh"; then
+  echo "无法加载 $SCRIPT_DIR/lib/common.sh，请确认脚本目录完整" >&2
+  exit 2
+fi
 
 TOP=10
 LOG_FILE=""
