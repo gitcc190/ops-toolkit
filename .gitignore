@@ -1,0 +1,36 @@
+# ---- 密钥与配置：绝不入库 ----
+.env
+*.env
+!.env.example
+!*.env.example
+conf/backup.env
+*.pem
+*.key
+id_rsa
+
+# ---- 日志与备份产物 ----
+*.log
+logs/
+backup/
+backups/
+!samples/access.log
+
+# ---- Python 运行时 ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# ---- 编辑器与系统 ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 临时文件 ----
+*.tmp
+proc_guard_*.json
+hosts.txt
