@@ -20,6 +20,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # 一次装完再清 apt 缓存，镜像小一半
 # gawk 提供 awk（Ubuntu 默认的 mawk 在某些正则上行为不同）
+# tzdata 必装：只设 ENV TZ 而不装 tzdata 时，/usr/share/zoneinfo 不存在，
+#   容器里的时间仍旧是 UTC（实测差 8 小时），日志时间戳会全部错位。
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bash \
@@ -34,11 +36,16 @@ RUN apt-get update \
         openssh-client \
         ca-certificates \
         iproute2 \
+        tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/ops-toolkit
 
-# 先把依赖清单与代码分开拷贝，改代码时不会让 apt 层缓存失效
+# 整仓拷进镜像。注意 .dockerignore 会在这一步之前生效：
+# .git / hosts.txt / conf/backup.env / docs 都不会进镜像，
+# 且一旦被 COPY 进来就再也删不掉（下一层 rm 只是多一层白障文件，数据仍在镜像里）。
 COPY . /opt/ops-toolkit
 
 RUN chmod +x /opt/ops-toolkit/scripts/*.sh \
