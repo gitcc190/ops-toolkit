@@ -20,6 +20,10 @@ import sys
 from collections import Counter
 from datetime import datetime
 
+# 退出码与仓库其它脚本保持一致：0 正常 / 1 参数错误或运行错误
+EXIT_OK = 0
+EXIT_ERROR = 1
+
 # Nginx combined 格式示例：
 # 10.0.0.5 - - [08/Dec/2026:10:15:32 +0800] "GET /api/items HTTP/1.1" 200 512 "-" "curl/7.68.0"
 LINE_RE = re.compile(
@@ -152,7 +156,14 @@ def main() -> int:
         "--since", type=parse_since, default=None,
         help="只看该时间之后的记录，格式 'YYYY-mm-dd HH:MM:SS'",
     )
-    args = parser.parse_args()
+    # argparse 遇到参数错误固定返回 2（比如 --top abc），但本仓库约定
+    # 「参数错误 = 1」，Shell 版与其它 Python 版脚本都是 1。
+    # 这里把 2 统一成 1，免得调用方要按两套规则判断。
+    try:
+        args = parser.parse_args()
+    except SystemExit as exc:
+        code = exc.code if isinstance(exc.code, int) else 2
+        return EXIT_OK if code == 0 else EXIT_ERROR
 
     if args.top <= 0:
         parser.error("--top 必须大于 0")
@@ -161,13 +172,13 @@ def main() -> int:
         result = analyze(args.logfile, args.since, args.status or None)
     except FileNotFoundError:
         print(f"日志文件不存在：{args.logfile}", file=sys.stderr)
-        return 1
+        return EXIT_ERROR
     except PermissionError:
         print(f"没有读取权限：{args.logfile}", file=sys.stderr)
-        return 1
+        return EXIT_ERROR
 
     print_report(result, args.top)
-    return 0
+    return EXIT_OK
 
 
 if __name__ == "__main__":
